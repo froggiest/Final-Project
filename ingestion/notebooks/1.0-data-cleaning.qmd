@@ -1,0 +1,178 @@
+---
+title: "1.0-data-cleaning"
+author: "Julian Beckert"
+format: html
+editor: visual
+---
+
+## Libraries & datasets
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Completely raw data:
+# Census American Community Survey data
+raw_meansoftransport <- read_csv("MeansOfTransByVehiclesAvailable.csv")
+raw_householdsize <- read_csv("HouseholdSizeVehicles.csv")
+raw_numberofworkers <- read_csv("NumberOfWorkersVehicles.csv")
+# RideOn GTFS feed data
+rideon_stop_times <- read_delim("rideon_stop_times.txt")
+rideon_trips <- read_delim("rideon_trips.txt")
+rideon_routes <- read_delim("rideon_routes.txt")
+rideon_calendar <- read_delim("rideon_calendar.txt")
+
+# Data adjusted with ArcGIS:
+# Census tracts paired with intersecting RideOn routes
+censustract_rideon <- read_csv("GIS_censustracts_rideonbusroutes.csv")
+# Residential buildings with census tracts
+residentialhomes_censustracts <- read_csv("GIS_residential_homes_with_census_tracts.csv")
+# Residential buildings in 1/2 mile of a bus route (not stop - route)
+homeshalfmile_rideonroute <- read_csv("HalfMileFromRouteHomes.csv")
+# Residential buildings in 1/4 mile of a bus route (not stop - route)
+homesquartermile_rideonroute <- read_csv("GIS_homes_in_a_quarter_mile_from_rideonbusroute.csv")
+```
+
+## Census
+
+### Means of transport
+
+```{r}
+# take the first row of the "means of transportation to work" dataframe as a character vector string
+means_firstrowstring <- as.character(raw_meansoftransport[1, ])
+# replace column names with this character vector string
+names(raw_meansoftransport) <- means_firstrowstring
+# remove the first row, no longer needed
+meansoftransport <- raw_meansoftransport[-1,]
+
+names(meansoftransport) <- gsub("!!", "", names(meansoftransport))
+names(meansoftransport) <- gsub(":", "", names(meansoftransport))
+names(meansoftransport) <- gsub("Estimate", "Est", names(meansoftransport))
+names(meansoftransport) <- gsub("Margin of Error", "MgOfErr", names(meansoftransport))
+names(meansoftransport) <- gsub("Total", "Tot", names(meansoftransport))
+names(meansoftransport) <- gsub("vehicle", "Vehicle", names(meansoftransport))
+names(meansoftransport) <- gsub("available", "", names(meansoftransport))
+names(meansoftransport) <- gsub("No ", "0", names(meansoftransport))
+names(meansoftransport) <- gsub(" or more ", "Plus", names(meansoftransport))
+names(meansoftransport) <- gsub(", ", "_",
+                                    gsub(" -", "",
+                                         gsub(" ", "_", names(meansoftransport))))
+
+# write_csv(meansoftransport, "CleanMeansOfTransByVehiclesAvailable.csv")
+```
+
+### Household size
+
+```{r}
+household_firstrowstring <- as.character(raw_householdsize[1, ])
+names(raw_householdsize) <- household_firstrowstring
+householdsize <- raw_householdsize[-1,]
+
+names(householdsize) <- gsub("!!", "", names(householdsize))
+names(householdsize) <- gsub(":", "", names(householdsize))
+names(householdsize) <- gsub(" or more", "Plus", names(householdsize))
+names(householdsize) <- gsub("Estimate", "Est", names(householdsize))
+names(householdsize) <- gsub("Total", "Tot", names(householdsize))
+names(householdsize) <- gsub("Margin of Error", "MgOfErr", names(householdsize))
+names(householdsize) <- gsub("-", "", names(householdsize))
+names(householdsize) <- gsub("vehicle", "Vehicle", names(householdsize))
+names(householdsize) <- gsub("No ", "0", names(householdsize))
+names(householdsize) <- gsub("household", "", names(householdsize))
+names(householdsize) <- gsub("available", "", names(householdsize))
+names(householdsize) <- gsub(" ", "", names(householdsize))
+
+# write_csv(householdsize, "CleanHouseholdSizeVehicles.csv")
+```
+
+### Number of workers
+
+```{r}
+workers_firstrowstring <- as.character(raw_numberofworkers[1, ])
+names(raw_numberofworkers) <- workers_firstrowstring
+numberofworkers <- raw_numberofworkers[-1,]
+
+names(numberofworkers) <- gsub("!!", "", names(numberofworkers))
+names(numberofworkers) <- gsub(":", "", names(numberofworkers))
+names(numberofworkers) <- gsub("Estimate", "Est", names(numberofworkers))
+names(numberofworkers) <- gsub("Margin of Error", "MgOfErr", names(numberofworkers))
+names(numberofworkers) <- gsub("Total", "Tot", names(numberofworkers))
+names(numberofworkers) <- gsub("vehicle", "Vehicle", names(numberofworkers))
+names(numberofworkers) <- gsub("available", "", names(numberofworkers))
+names(numberofworkers) <- gsub("No ", "0", names(numberofworkers))
+names(numberofworkers) <- gsub(" or more ", "Plus", names(numberofworkers))
+names(numberofworkers) <- gsub(", ", "_",
+                                    gsub(" -", "",
+                                         gsub(" ", "_", names(numberofworkers))))
+
+# write_csv(numberofworkers, "CleanNumberOfWorkers.csv")
+```
+
+
+## RideOn GTFS
+
+```{r}
+rideon_calendar
+```
+
+**Note:**
+
+`service_id` of:\
+**1** means service on Monday-Friday\
+**2** means Saturday\
+**3** means Sunday\
+
+
+### RideOn trips per route/day summary
+
+```{r}
+# join different GTFS files together
+rd_calendar_trips1 <- left_join(rideon_calendar, rideon_trips, by = "service_id")
+rd_calendar_trips <- left_join(rd_calendar_trips1, rideon_stop_times, by = "trip_id")
+
+rd_calendar_stops_trips <- left_join(rd_calendar_trips, rideon_routes, by = "route_id")
+
+rd_weekday_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 1) %>% # service_id == 1 means runs monday-friday
+  group_by(route_short_name) %>% 
+  summarise(
+    wkday_departures = length(unique(trip_id))
+  )
+
+rd_sat_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 2) %>% # service_id == 2 means runs saturday
+  group_by(route_short_name) %>% 
+  summarise(
+    sat_departures = length(unique(trip_id))
+  )
+
+rd_sun_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 3) %>% ## service_id == 3 means runs sunday
+  group_by(route_short_name) %>% 
+  summarise(
+    sun_departures = length(unique(trip_id))
+  )
+
+# join into one to make a schedule/number of trips by day of week dataset
+rd_all_calendar_trips <- left_join(rd_weekday_calendar_trips, rd_sat_calendar_trips, by = "route_short_name")
+rd_all_calendar_trips <- left_join(rd_all_calendar_trips, rd_sun_calendar_trips, by = "route_short_name")
+
+rd_all_calendar_trips_0 <- rd_all_calendar_trips
+rd_all_calendar_trips_0[is.na(rd_all_calendar_trips_0)] <- 0 # replace NA with 0 
+
+# write_csv(rd_all_calendar_trips_0, "rideon_all_trips_calendar_schedule.csv")
+```
+
+
+## Census tracts + RideOn GTFS calendar
+
+```{r}
+clean_censustract_rideon <- censustract_rideon %>% 
+  rename_at("GEOIDFQ", ~ "Geography") %>% # make name match other datasets
+  rename_at("route_shor", ~ "route_short_name") %>% # make name match other datasets
+  distinct(Geography, route_short_name, .keep_all = TRUE) # remove rows with duplicates of these two columns (duplicates that occurred because of how the data was processed in ArcGIS)
+
+clean_calendar_censustract_rideon <- left_join(clean_censustract_rideon, rd_all_calendar_trips, by = "route_short_name")
+
+# write_csv(clean_calendar_censustract_rideon, "censustract_rideon_with_calendar.csv")
+```
