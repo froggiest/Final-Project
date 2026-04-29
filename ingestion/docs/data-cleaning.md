@@ -35,8 +35,8 @@ Note: I am not including my code for accessing the WMATA API, or the data I acce
 
 Data used: `rideon_stop_times.txt`, `rideon_trips.txt`, `rideon_routes.txt`, `rideon_calendar.txt`, `Feb2026RideOnAvgDailyRidership.csv`, `Feb26WMATAAvgDailyRidership.csv`, and `wmata_all_calendar_trips.csv` (not included in GitHub repository)\
 
-\* Mutated RideOn GTFS files to create a summary of departures per day schedule (weekday, Saturday, Sunday) per route\
-\* Created a summary of ridership per day; joined to GTFS summary\
+* Mutated RideOn GTFS files to create a summary of departures per day schedule (weekday, Saturday, Sunday) per route\
+* Created a summary of ridership per day; joined to GTFS summary\
 
 Dataset created: `metrobus_rideon_all_trips_calendar_schedule.csv`\
 
@@ -47,9 +47,9 @@ Dataset created: `metrobus_rideon_all_trips_calendar_schedule.csv`\
 Data used: `metrobus_rideon_all_trips_calendar_schedule.csv`, `HouseholdSizeVehicles.csv`, `NumberOfWorkersVehicles.csv`, `DemographicsHousing.csv` , `MetroandRideOnRoutes_CensusTracts.csv`, `MontgomeryCounty_Cities_Tracts.csv`, `census_tracts_square_miles.csv`\
 
 This notebook contains data cleaning to make datasets with general purposes in this project.\
-\* Cleaned American Community Survey (ACS) data (column names)\
-\* Combined bus ridership & departure summary with bus routes per census tracts to create a departure per census tract summary (number of buses passing through daily), as well as mean daily riders for all routes intersecting with the tract\
-\* Created a dataset of the square miles and cities that each census tract represents (combined and slightly cleaned)\
+* Cleaned American Community Survey (ACS) data (column names)\
+* Combined bus ridership & departure summary with bus routes per census tracts to create a departure per census tract summary (number of buses passing through daily), as well as mean daily riders for all routes intersecting with the tract\
+* Created a dataset of the square miles and cities that each census tract represents (combined and slightly cleaned)\
 
 Datasets created: `censusandcitysize.csv`, `censustract_buses_ridership_calendar.csv`, `mocobuses_all_trips_calendar_schedule.csv`, `all_american_community_survey.csv`\
 
@@ -73,9 +73,9 @@ Dataset created: `residentialbuildings_distances_census.csv`\
 Data used: `BRT_routes_censustracts.csv`, `BRT_stops_all_with_census_tracts.csv`, `halfmile_BRT_ROUTE_homes.csv`, `quartermile_BRT_ROUTE_homes.csv`, `residentialbuildings_distances_census.csv`\
 
 This document does the same thing as the script for residential buildings and existing bus routes, and more\
-\* Created binary variables for distance from BRT routes in the updated all residential buildings dataset\
-\* Created summary of BRT routes and stop in each census tract\
-\* Created variable for number of BRT routes and stops in each tract\
+* Created binary variables for distance from BRT routes in the updated all residential buildings dataset\
+* Created summary of BRT routes and stop in each census tract\
+* Created variable for number of BRT routes and stops in each tract\
 
 Datasets created: `residentialbuilidings_BRT_distance_census_tracts.csv`, `distinct_brt_stops_vs_routes.csv`, `brt_stop_route_statistics.csv`
 
@@ -86,9 +86,9 @@ Datasets created: `residentialbuilidings_BRT_distance_census_tracts.csv`, `disti
 Data used: `censustract_buses_ridership_calendar.csv`, `all_american_community_survey.csv`, `residentialbuilidings_BRT_distance_census_tracts.csv`, `censusandcitysize.csv`, `brt_stop_route_statistics.csv`
 
 This notebook contains data cleaning to make datasets with specific purposes in analysis.\
-\* Created variables for number and proportion of residential buildings and dwellings (homes & units) in each tract, for the total numbers, and various distances to routes and stops\
-\* Created a ridership and departure summary for total number and average riders of routes and departures per tract for different days\
-\* Created variables for total number and proportion of households with different characteristics based on ACS estimates; more people than vehicles, more workers than vehicles, 0 vehicles, etc\
-\* Added BRT variables\
+* Created variables for number and proportion of residential buildings and dwellings (homes & units) in each tract, for the total numbers, and various distances to routes and stops\
+* Created a ridership and departure summary for total number and average riders of routes and departures per tract for different days\
+* Created variables for total number and proportion of households with different characteristics based on ACS estimates; more people than vehicles, more workers than vehicles, 0 vehicles, etc\
+* Added BRT variables\
 
 Dataset created: `bus_tracts_acs_summary.csv`, `final_bus_access_dataset_simple.csv`\
