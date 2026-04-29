@@ -1,0 +1,121 @@
+---
+title: "1.0-bus-service-ridership"
+author: "Julian Beckert"
+format: html
+editor: visual
+---
+
+## Libraries and datasets
+
+```{r}
+library(tidyverse)
+# RideOn GTFS feed data
+rideon_stop_times <- read_delim("rideon_stop_times.txt")
+rideon_trips <- read_delim("rideon_trips.txt")
+rideon_routes <- read_delim("rideon_routes.txt")
+rideon_calendar <- read_delim("rideon_calendar.txt")
+
+# Ridership
+rideon_ridership_feb26 <- read_csv("Feb2026RideOnAvgDailyRidership.csv")
+wmata_ridership_feb26 <- read_csv("Feb26WMATAAvgDailyRidership.csv")
+
+# WMATA cleaned GTFS feed data 
+# NOTE: This file is NOT included in the GitHub repository
+wmata_all_calendar_trips <- read_csv("wmata_all_calendar_trips.csv")
+
+```
+
+```{r}
+rideon_calendar
+```
+
+**Note:**
+
+`service_id` of:\
+**1** means service on Monday-Friday\
+**2** means Saturday\
+**3** means Sunday\
+
+### RideOn trips per route/day summary
+
+```{r}
+# join different GTFS files together
+rd_calendar_trips1 <- left_join(rideon_calendar, rideon_trips, by = "service_id")
+rd_calendar_trips <- left_join(rd_calendar_trips1, rideon_stop_times, by = "trip_id")
+
+rd_calendar_stops_trips <- left_join(rd_calendar_trips, rideon_routes)
+
+rd_weekday_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 1) %>% # service_id == 1 means runs monday-friday
+  group_by(route_short_name) %>% 
+  summarise(
+    wkday_departures = length(unique(trip_id))
+  )
+
+rd_sat_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 2) %>% # service_id == 2 means runs saturday
+  group_by(route_short_name) %>% 
+  summarise(
+    sat_departures = length(unique(trip_id))
+  )
+
+rd_sun_calendar_trips <- rd_calendar_stops_trips %>% 
+  filter(service_id == 3) %>% ## service_id == 3 means runs sunday
+  group_by(route_short_name) %>% 
+  summarise(
+    sun_departures = length(unique(trip_id))
+  )
+
+# join into one to show number of trips by day of week
+rd_all_calendar_trips <- left_join(rd_weekday_calendar_trips, rd_sat_calendar_trips, by = "route_short_name")
+rd_all_calendar_trips <- left_join(rd_all_calendar_trips, rd_sun_calendar_trips, by = "route_short_name")
+
+rd_all_calendar_trips[is.na(rd_all_calendar_trips)] <- 0 # replace NA with 0 
+
+
+sum(rd_all_calendar_trips$sat_departures)
+sum(rd_all_calendar_trips$sun_departures)
+```
+
+## Ridership
+
+Clean and combine RideOn + WMATA Metrobus ridership
+
+```{r}
+rideon_ridership_feb26 <- rideon_ridership_feb26 %>% 
+  select(-Holiday) %>%  # Metrobus doesn't have this column, so removing
+  rename_at("Route",~"route_name")
+
+wmata_ridership_feb26 <- wmata_ridership_feb26 %>% 
+  rename_at("Route",~"route_name")
+wmata_ridership_feb26[is.na(wmata_ridership_feb26)] <- 0
+
+joined_ridership_feb26 <- bind_rows(rideon_ridership_feb26, wmata_ridership_feb26)
+
+# make the naming more standard
+ridership_feb26 <- joined_ridership_feb26 %>% 
+  rename_at("Weekday",~"wkday_riders") %>% 
+  rename_at("Saturday",~"sat_riders") %>% 
+  rename_at("Sunday",~"sun_riders")
+```
+
+The RideOn ridership file used "XPINK" and "XLIME" instead of PINK and LIME, so I renamed them in the csv file itself. Likewise, the RideOn ridership data includes three Flex routes (Flex Rockville, Flex Wheaton, and Flex 918) and bus route 301, that are not included in the GTFS files, and will be removed when joining to the GTFS files.
+
+```{r}
+wmata_all_calendar_trips <- wmata_all_calendar_trips %>%
+  rename_at("route_short_name",~"route_name") %>%
+  mutate(agency = "WMATA")
+rd_all_calendar_trips <- rd_all_calendar_trips %>%
+  rename_at("route_short_name",~"route_name") %>%
+  mutate(agency = "MC RideOn")
+all_calendar_trips <- bind_rows(rd_all_calendar_trips, wmata_all_calendar_trips)
+
+sum(all_calendar_trips$wkday_departures)
+sum(all_calendar_trips$sat_departures)
+sum(all_calendar_trips$sun_departures)
+
+buses_calendar_ridership <- left_join(all_calendar_trips, ridership_feb26)
+
+# NOTE: This file IS included in the GitHub repository
+# write_csv(buses_calendar_ridership, "metrobus_rideon_all_trips_calendar_schedule.csv")
+```
